@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": ".",
+			"name": "dpx_elecrow_eink"
+		},
+		{
+			"path": "./firmware",
+			"name": "firmware"
+		}
+	]
+}
