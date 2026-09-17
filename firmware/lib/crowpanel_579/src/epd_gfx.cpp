@@ -17,24 +17,33 @@ static void epd_warn_once(const __FlashStringHelper *msg)
   }
 }
 
-void epd_paint_new(uint8_t *image, uint16_t width, uint16_t height,
-                    epd_rotation_t rotate, uint8_t color)
+void epd_paint_new(uint8_t *image, epd_rotation_t rotate, uint8_t color)
 {
   epd_paint.image = image;
   epd_paint.color = color;
-  epd_paint.widthMemory = width;
-  epd_paint.heightMemory = height;
-  epd_paint.widthByte = (width % 8 == 0) ? (width / 8) : (width / 8 + 1);
   epd_paint.rotate = rotate;
+
+  // Buffer packing geometry is fixed by the hardware -- this MUST stay
+  // 800 RAM columns (EPD_RAM_W) x 272 rows so widthByte comes out to 100,
+  // matching epd_ll_write_frame()'s fixed 100-byte-per-row stride. Do not
+  // derive this from the visible/logical canvas size (792x272) -- see the
+  // header comment on this function for the bug that caused.
+  epd_paint.widthMemory = EPD_RAM_W;
+  epd_paint.heightMemory = EPD_VISIBLE_H;
+  epd_paint.widthByte = EPD_RAM_W / 8;
+
+  // Logical canvas size -- what callers' draw coordinates are clamped
+  // against -- is the true visible panel, independent of RAM geometry.
+  // Rotating 90/270 swaps which physical axis is "wide".
   if (rotate == EPD_ROTATE_0 || rotate == EPD_ROTATE_180)
   {
-    epd_paint.width = height;
-    epd_paint.height = width;
+    epd_paint.width = EPD_VISIBLE_W;
+    epd_paint.height = EPD_VISIBLE_H;
   }
   else
   {
-    epd_paint.width = width;
-    epd_paint.height = height;
+    epd_paint.width = EPD_VISIBLE_H;
+    epd_paint.height = EPD_VISIBLE_W;
   }
 }
 

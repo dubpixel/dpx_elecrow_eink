@@ -5,12 +5,7 @@ void CrowPanel579::begin(epd_rotation_t rotate)
 {
   epd_ll_gpio_init();
   epd_ll_init();
-  epd_paint_new(_framebuffer, EPD_RAM_W / 2 /* per-controller 400px halves stack to 792 visible */,
-                EPD_VISIBLE_H, rotate, EPD_WHITE);
-  // Vendor examples pass EPD_W(=800)/EPD_H directly; we intentionally pass
-  // the visible width here because epd_paint_new derives widthByte from it,
-  // and 792 already accounts for the two-controller composite via
-  // epd_set_pixel's gap offset -- passing 800 would double-count it.
+  epd_paint_new(_framebuffer, rotate, EPD_WHITE);
   epd_paint_clear(EPD_WHITE);
   epd_ll_clear_ram();
   epd_ll_refresh_full();

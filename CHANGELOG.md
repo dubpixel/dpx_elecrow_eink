@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Coordinate bounds-checking in the panel driver (vendor driver would underflow/panic the ESP32 if given raw width/height instead of the last valid pixel — now clamps instead)
+- **Framebuffer geometry bug confirmed on real hardware** (black bar at the halfway point of the display, garbled/grainy text): `CrowPanel579::begin()` was passing `EPD_RAM_W / 2` (400) as the buffer width to `epd_paint_new()`, halving `widthByte` to 50 — but `epd_ll_write_frame()` reads the buffer assuming a fixed 100-byte-per-row stride (unchanged from vendor). Every row after that was read from the wrong offset. Also meant `epd_paint_clear()` only zeroed half the 27200-byte buffer. Fixed by removing the width/height parameters from `epd_paint_new()` entirely — buffer packing geometry (800x272 RAM, 100 bytes/row) is now a fixed hardware constant, and the logical/visible canvas (792x272) used for coordinate clamping is derived separately from rotation, not from the RAM packing math. See `firmware/lib/crowpanel_579/src/epd_gfx.h`/`.cpp` for the full explanation left in comments.
 
 ### Security
 - 

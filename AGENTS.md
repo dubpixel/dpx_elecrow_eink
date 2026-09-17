@@ -6,9 +6,9 @@ This document provides operational directives for AI coding assistants (GitHub C
 
 ## PROJECT: dpx_elecrow_eink
 
-**Status:** Firmware template in progress (2026-09-15) — driver rewritten, not yet flashed/tested on real hardware
-**Branch:** `main` (no feature branch created yet for the firmware template work)
-**Version File:** none yet — create one when the first buildable firmware lands (see AGENTS.md §1)
+**Status:** Firmware template flashed and running on real hardware (2026-09-17, v0.1.1) — first hardware test surfaced a real framebuffer-geometry bug (black bar + garbled text), now fixed; not otherwise validated (WiFi paths, partial-refresh ghosting mitigation, deep sleep power draw all still unverified)
+**Branch:** `main` (PR'd from `feature/crowpanel-579-firmware-template`)
+**Version File:** `firmware/VERSION` (currently 0.1.1)
 
 ### Architecture (2-minute summary)
 
@@ -78,6 +78,7 @@ template project.
 5. **ESPHome does NOT work out of the box:** a customer review (Home Assistant integration) confirms the stock ESPHome e-paper config doesn't handle the dual-SSD1683 master/slave setup — a custom ESPHome driver is required. Not relevant unless this project adds Home Assistant integration.
 6. **Physical fragility:** the side rotary/multi-control switch handle is thin plastic and can snap if dropped or bumped (per-review report) — plan for an enclosure early, don't leave it loose on a desk during dev.
 7. **Full refresh wears the panel + is slow (~1.9s):** don't redraw more than about once a minute for anything beyond bring-up testing.
+8. **`epd_paint_new()` has no width/height parameters — don't add them back.** The first hardware flash (2026-09-17) showed a black bar at the halfway point of the display and garbled text, caused by passing a halved buffer width into that function: it desynced the framebuffer's byte stride from what `epd_ll_write_frame()` assumes (fixed 100 bytes/row) and left half the buffer uncleared. Buffer packing geometry is now a hardware-fixed constant inside `epd_paint_new()`; the logical/visible canvas used for coordinate clamping is derived separately from rotation. See the comment on `epd_paint_new()` in `epd_gfx.h` before touching this again.
 
 Full sourcing for all of the above: `firmware/mfg_examples/AMAZON_REVIEW_GOTCHAS.md` (pulled from real Amazon customer reviews on the product listing) plus the [Elecrow wiki tutorial](https://www.elecrow.com/wiki/CrowPanel_ESP32_E-paper_5.79-inch_HMI_Display.html) and the [vendor GitHub repo](https://github.com/Elecrow-RD/CrowPanel-ESP32-5.79-E-paper-HMI-Display-with-272-792).
 

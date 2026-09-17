@@ -62,8 +62,20 @@ typedef struct
 extern epd_paint_t epd_paint;
 
 // image buffer must be at least EPD_HALF_PANEL_BYTES*2 (27200) bytes.
-void epd_paint_new(uint8_t *image, uint16_t width, uint16_t height,
-                    epd_rotation_t rotate, uint8_t color);
+//
+// Deliberately NOT parameterized by width/height -- the buffer's physical
+// geometry (widthMemory=800 RAM columns x heightMemory=272 rows, packed at
+// 100 bytes/row) is fixed by the panel hardware and MUST match what
+// epd_ll_write_frame() assumes when it pushes the buffer to the two SSD1683
+// controllers. An earlier version of this API took width/height and a
+// caller passed 400 (half the RAM width) reasoning that the gap offset
+// "already accounted for it" -- it didn't: that halved widthByte to 50,
+// desynced every row from write_frame's fixed 100-byte stride, and produced
+// a visible black bar at the halfway point plus garbled text. Don't
+// reintroduce a width/height parameter here; if you need a different
+// logical canvas size, add it as a *separate* clamping bound, not as an
+// input to the buffer packing math.
+void epd_paint_new(uint8_t *image, epd_rotation_t rotate, uint8_t color);
 void epd_paint_clear(uint8_t color);
 
 // Sets one pixel. Coordinates outside [0, width) x [0, height) are clamped
