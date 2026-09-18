@@ -244,3 +244,32 @@ void epd_ll_write_frame(const uint8_t *image_bw)
     }
   }
 }
+
+void epd_ll_sync_reference_ram(const uint8_t *image_bw)
+{
+  uint32_t tempcol = 0, templine = 0;
+
+  epd_set_ram_master_addr();
+  epd_wr_reg(0x26);
+  for (uint32_t i = 0; i < EPD_HALF_PANEL_BYTES; i++)
+  {
+    epd_wr_data8(*(image_bw + templine * EPD_SOURCE_BYTES * 2 + tempcol));
+    if (++templine >= EPD_GATE_BITS)
+    {
+      tempcol++;
+      templine = 0;
+    }
+  }
+
+  epd_set_ram_slave_addr();
+  epd_wr_reg(0xA6);
+  for (uint32_t i = 0; i < EPD_HALF_PANEL_BYTES; i++)
+  {
+    epd_wr_data8(*(image_bw + templine * EPD_SOURCE_BYTES * 2 + tempcol));
+    if (++templine >= EPD_GATE_BITS)
+    {
+      tempcol++;
+      templine = 0;
+    }
+  }
+}

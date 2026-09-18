@@ -65,6 +65,16 @@ void epd_ll_deep_sleep(void);
 // epd_ll_refresh_* functions afterward.
 void epd_ll_write_frame(const uint8_t *image_bw);
 
+// Writes `image_bw` into the "previous frame" reference RAM (registers
+// 0x26/0xA6) that partial-refresh diffing compares against. This is the
+// piece the vendor demo does as EPD_Clear_R26A6H() -- call it after every
+// refresh you trigger (full or partial) so the *next* refresh diffs against
+// what's actually on screen. Skipping this leaves the reference bank at
+// whatever epd_ll_clear_ram() set it to (0x00/black) and partial refreshes
+// will barely darken pixels that "look" unchanged against that stale
+// baseline -- this is what faint/washed-out partial-refresh text means.
+void epd_ll_sync_reference_ram(const uint8_t *image_bw);
+
 // Clears both controllers' RAM directly (bypasses the framebuffer) --
 // useful for a fast power-on blank without allocating ImageBW first.
 void epd_ll_clear_ram(void);

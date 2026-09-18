@@ -6,9 +6,9 @@ This document provides operational directives for AI coding assistants (GitHub C
 
 ## PROJECT: dpx_elecrow_eink
 
-**Status:** Firmware template flashed and running on real hardware (2026-09-17, v0.1.1) — first hardware test surfaced a real framebuffer-geometry bug (black bar + garbled text), now fixed; not otherwise validated (WiFi paths, partial-refresh ghosting mitigation, deep sleep power draw all still unverified)
+**Status:** Firmware template flashed on real hardware twice (2026-09-17): v0.1.1 fixed a framebuffer-geometry bug (black bar + garbled text) but partial-refresh text still came out faint; v0.1.2 fixes that (missing partial-refresh reference-RAM sync). **v0.1.2 has not yet been confirmed on hardware** — I (the agent) cannot flash it myself, so treat it as fixed-by-analysis until someone reflashes and reports back. Still otherwise unvalidated: WiFi paths, ghosting mitigation, deep sleep power draw.
 **Branch:** `main` (PR'd from `feature/crowpanel-579-firmware-template`)
-**Version File:** `firmware/VERSION` (currently 0.1.1)
+**Version File:** `firmware/VERSION` (currently 0.1.2)
 
 ### Architecture (2-minute summary)
 
@@ -79,6 +79,7 @@ template project.
 6. **Physical fragility:** the side rotary/multi-control switch handle is thin plastic and can snap if dropped or bumped (per-review report) — plan for an enclosure early, don't leave it loose on a desk during dev.
 7. **Full refresh wears the panel + is slow (~1.9s):** don't redraw more than about once a minute for anything beyond bring-up testing.
 8. **`epd_paint_new()` has no width/height parameters — don't add them back.** The first hardware flash (2026-09-17) showed a black bar at the halfway point of the display and garbled text, caused by passing a halved buffer width into that function: it desynced the framebuffer's byte stride from what `epd_ll_write_frame()` assumes (fixed 100 bytes/row) and left half the buffer uncleared. Buffer packing geometry is now a hardware-fixed constant inside `epd_paint_new()`; the logical/visible canvas used for coordinate clamping is derived separately from rotation. See the comment on `epd_paint_new()` in `epd_gfx.h` before touching this again.
+9. **Every refresh must sync the "reference" RAM bank afterward, or partial refreshes come out faint.** The SSD1683 pair diffs new content (registers 0x24/0xA4) against a separate "previous frame" bank (0x26/0xA6) for partial updates — nothing updates that second bank automatically. `epd_ll_clear_ram()` only sets it once at startup; skip syncing it after later refreshes and every partial refresh diffs against that stale baseline, so real content changes look like "no change" and barely darken. `CrowPanel579::fullRefresh()`/`partialRefresh()` both call `epd_ll_sync_reference_ram()` after triggering the actual refresh — don't call `epd_ll_refresh_full()`/`epd_ll_refresh_partial()` directly without also doing this.
 
 Full sourcing for all of the above: `firmware/mfg_examples/AMAZON_REVIEW_GOTCHAS.md` (pulled from real Amazon customer reviews on the product listing) plus the [Elecrow wiki tutorial](https://www.elecrow.com/wiki/CrowPanel_ESP32_E-paper_5.79-inch_HMI_Display.html) and the [vendor GitHub repo](https://github.com/Elecrow-RD/CrowPanel-ESP32-5.79-E-paper-HMI-Display-with-272-792).
 
