@@ -67,12 +67,24 @@ void epd_ll_write_frame(const uint8_t *image_bw);
 
 // Writes `image_bw` into the "previous frame" reference RAM (registers
 // 0x26/0xA6) that partial-refresh diffing compares against. This is the
-// piece the vendor demo does as EPD_Clear_R26A6H() -- call it after every
-// refresh you trigger (full or partial) so the *next* refresh diffs against
-// what's actually on screen. Skipping this leaves the reference bank at
-// whatever epd_ll_clear_ram() set it to (0x00/black) and partial refreshes
-// will barely darken pixels that "look" unchanged against that stale
-// baseline -- this is what faint/washed-out partial-refresh text means.
+// piece the vendor demo does once, as EPD_Clear_R26A6H(), right after the
+// initial blank full clear -- and only then. Confirmed on real hardware:
+//
+//   - Skip calling this entirely and the reference bank stays at whatever
+//     epd_ll_clear_ram() set it to (0x00/black); partial refreshes then
+//     diff real content against a black baseline and barely darken pixels
+//     that "look" already-black against it -- faint/washed-out text.
+//   - Call this again after a content-bearing refresh (not just the
+//     initial blank one) and the *next* partial refresh sees that content
+//     as "unchanged" and it visibly drops out -- only genuinely new pixels
+//     stay dark.
+//
+// So: call this exactly once, in CrowPanel579::begin(), with a blank/white
+// framebuffer, matching vendor's proven usage. Do not call it again from
+// fullRefresh()/partialRefresh() without a way to verify the change against
+// real hardware -- this project doesn't have SSD1683 LUT-level datasheet
+// coverage to justify anything more clever than what vendor's example
+// already validated.
 void epd_ll_sync_reference_ram(const uint8_t *image_bw);
 
 // Clears both controllers' RAM directly (bypasses the framebuffer) --
